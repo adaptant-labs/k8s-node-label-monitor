@@ -21,6 +21,7 @@ import (
 var (
 	monitorName = "k8s-node-label-monitor"
 	nodeLocal   = false
+	cronjob		= ""
 	log         = logf.Log.WithName(monitorName)
 	nodeLabels  = map[string]map[string]string{}
 )
@@ -197,6 +198,7 @@ func main() {
 	var endpoint string
 
 	flag.BoolVar(&nodeLocal, "l", false, "Only track changes to the local node")
+	flag.StringVar(&cronjob, "c", "", "Manually trigger named CronJob on label changes")
 	flag.StringVar(&endpoint, "n", "", "Notification endpoint to POST updates to")
 
 	flag.Usage = func() {
@@ -266,6 +268,8 @@ func main() {
 			log.Error(err, "failed to instantiate endpoint notifier")
 			return
 		}
+	} else if len(cronjob) > 0 {
+		controller.notifier = notifiers.NewCronJobNotifier(clientset, cronjob)
 	} else {
 		controller.notifier = notifiers.LogNotifier{}
 	}

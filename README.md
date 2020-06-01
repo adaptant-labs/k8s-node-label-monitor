@@ -23,13 +23,15 @@ General usage is as follows:
 ```
 $ k8s-node-label-monitor --help
 Node Label Monitor for Kubernetes
-Usage: k8s-node-label-monitor [flags]
-
-  -kubeconfig string
-    	Paths to a kubeconfig. Only required if out-of-cluster.
-  -l	Only track changes to the local node
-  -n string
-    	Notification endpoint to POST updates to
+ Usage: k8s-node-label-monitor [flags]
+ 
+   -c string
+     	Manually trigger named CronJob on label changes
+   -kubeconfig string
+     	Paths to a kubeconfig. Only required if out-of-cluster.
+   -l	Only track changes to the local node
+   -n string
+     	Notification endpoint to POST updates to
 ```
 
 ### Running Node-Local via Docker
@@ -72,6 +74,7 @@ are supported:
 |----------|-------------|
 | Logger   | Log-based notification, piggybacking on the default logger instance |
 | REST API Endpoint | POSTs the JSON-encoded payload to a defined REST API endpoint  |
+| Kubernetes CronJob | Manually trigger a Kubernetes CronJob (such as [descheduler]) |
 
 ## Features and bugs
 
@@ -90,3 +93,4 @@ in the LICENSE file included in the distribution.
 [SODALITE]: https://www.sodalite.eu
 [tracker]: https://github.com/adaptant-labs/k8s-node-label-monitor/issues
 [adaptant/k8s-node-label-monitor]: https://hub.docker.com/repository/docker/adaptant/k8s-node-label-monitor
+[descheduler]: https://github.com/kubernetes-sigs/descheduler
