@@ -53,4 +53,4 @@ spec:
           name: node-label-monitor
           args:
             # Run in node-local mode
-            - "-l"
+            - "-local"

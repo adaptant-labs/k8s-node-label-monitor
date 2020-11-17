@@ -23,15 +23,20 @@ General usage is as follows:
 ```
 $ k8s-node-label-monitor --help
 Node Label Monitor for Kubernetes
- Usage: k8s-node-label-monitor [flags]
- 
-   -c string
-     	Manually trigger named CronJob on label changes
-   -kubeconfig string
-     	Paths to a kubeconfig. Only required if out-of-cluster.
-   -l	Only track changes to the local node
-   -n string
-     	Notification endpoint to POST updates to
+Usage: k8s-node-label-monitor [flags]
+
+  -cronjob string
+    	Manually trigger named CronJob on label changes
+  -endpoint string
+    	Notification endpoint to POST updates to
+  -kubeconfig string
+    	Paths to a kubeconfig. Only required if out-of-cluster.
+  -local
+    	Only track changes to the local node
+  -logging
+    	Enable/disable logging (default true)
+  -master --kubeconfig
+    	(Deprecated: switch to --kubeconfig) The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.
 ```
 
 ### Running Node-Local via Docker

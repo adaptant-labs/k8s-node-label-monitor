@@ -22,6 +22,7 @@ import (
 var (
 	monitorName = "k8s-node-label-monitor"
 	nodeLocal   = false
+	logging     = true
 	cronjob     = ""
 	log         = logf.Log.WithName(monitorName)
 	nodeLabels  = map[string]map[string]string{}
@@ -210,9 +211,10 @@ func enqueueNodeUpdate(nodeName string, queue workqueue.RateLimitingInterface) {
 func main() {
 	var endpoint string
 
-	flag.BoolVar(&nodeLocal, "l", false, "Only track changes to the local node")
-	flag.StringVar(&cronjob, "c", "", "Manually trigger named CronJob on label changes")
-	flag.StringVar(&endpoint, "n", "", "Notification endpoint to POST updates to")
+	flag.BoolVar(&nodeLocal, "local", false, "Only track changes to the local node")
+	flag.BoolVar(&logging, "logging", true, "Enable/disable logging")
+	flag.StringVar(&cronjob, "cronjob", "", "Manually trigger named CronJob on label changes")
+	flag.StringVar(&endpoint, "endpoint", "", "Notification endpoint to POST updates to")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Node Label Monitor for Kubernetes\n")
@@ -274,8 +276,10 @@ func main() {
 	controller := NewController(queue, indexer, informer)
 
 	// Set up the notifiers for this controller
-	log.Info("Enabling Logging notifier")
-	controller.notifiers = append(controller.notifiers, notifiers.LogNotifier{})
+	if logging {
+		log.Info("Enabling Logging notifier")
+		controller.notifiers = append(controller.notifiers, notifiers.LogNotifier{})
+	}
 
 	if len(endpoint) > 0 {
 		notifier, err := notifiers.NewEndpointNotifier(log, endpoint)
