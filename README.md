@@ -1,5 +1,7 @@
 # Kubernetes Node Label Monitor
 
+[![Docker Pulls](https://img.shields.io/docker/pulls/adaptant/k8s-node-label-monitor.svg)](https://hub.docker.com/repository/docker/adaptant/k8s-node-label-monitor)
+
 This tool provides a custom Kubernetes controller for monitoring and notifying changes in the label states of Kubernetes
 nodes (labels added, deleted, or updated), and can be run either node-local or cluster-wide. Notifications can be
 dispatched to a number of different targets, and can be easily extended or customized through a simple notification
