@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-logr/logr"
+	"net"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 // REST Endpoint Notifier
@@ -15,14 +17,27 @@ type EndpointNotifier struct {
 }
 
 func NewEndpointNotifier(log logr.Logger, endpoint string) (*EndpointNotifier, error) {
-	_, err := url.ParseRequestURI(endpoint)
+	log.Info("Enabling REST endpoint notifier", "endpoint", endpoint)
+
+	uri, err := url.ParseRequestURI(endpoint)
+	if err != nil || uri.Host == "" {
+		// POST requires a valid endpoint scheme, add a safe default if none is provided
+		uri, err = url.ParseRequestURI("http://" + endpoint)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Validate endpoint connectivity
+	conn, err := net.DialTimeout("tcp", uri.Host, 5*time.Second)
 	if err != nil {
-		log.Error(err, "failed to validate endpoint URL")
 		return nil, err
+	} else {
+		conn.Close()
 	}
 
 	return &EndpointNotifier{
-		endpoint: endpoint,
+		endpoint: uri.String(),
 	}, nil
 }
 
