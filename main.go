@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/adaptant-labs/k8s-node-label-monitor/notifiers"
+	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -21,16 +22,16 @@ import (
 var (
 	monitorName = "k8s-node-label-monitor"
 	nodeLocal   = false
-	cronjob		= ""
+	cronjob     = ""
 	log         = logf.Log.WithName(monitorName)
 	nodeLabels  = map[string]map[string]string{}
 )
 
 type Controller struct {
-	indexer  cache.Indexer
-	queue    workqueue.RateLimitingInterface
-	informer cache.Controller
-	notifier notifiers.LabelNotifier
+	indexer   cache.Indexer
+	queue     workqueue.RateLimitingInterface
+	informer  cache.Controller
+	notifiers []notifiers.LabelNotifier
 }
 
 // Compare two label maps and determine which key/value pairs have been added, deleted, or updated.
@@ -65,10 +66,22 @@ func compareLabelMaps(oldMap map[string]string, newMap map[string]string) (added
 
 func NewController(queue workqueue.RateLimitingInterface, indexer cache.Indexer, informer cache.Controller) *Controller {
 	return &Controller{
-		indexer:  indexer,
-		informer: informer,
-		queue:    queue,
+		indexer:   indexer,
+		informer:  informer,
+		queue:     queue,
+		notifiers: make([]notifiers.LabelNotifier, 0),
 	}
+}
+
+func (c Controller) notify(log logr.Logger, notification notifiers.LabelUpdateNotification) error {
+	for _, notifier := range c.notifiers {
+		err := notifier.Notify(log, notification)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Calculate label changes across each node update
@@ -95,7 +108,7 @@ func (c *Controller) labelUpdateHandler(key string) error {
 				Deleted: deleted,
 			}
 
-			err := c.notifier.Notify(log, notification)
+			err := c.notify(log, notification)
 			if err != nil {
 				log.Error(err, "Failed to dispatch notification")
 				return err
@@ -260,23 +273,26 @@ func main() {
 
 	controller := NewController(queue, indexer, informer)
 
-	// Set up the notifier for this controller
+	// Set up the notifiers for this controller
+	log.Info("Enabling Logging notifier")
+	controller.notifiers = append(controller.notifiers, notifiers.LogNotifier{})
+
 	if len(endpoint) > 0 {
-		var err error
-		controller.notifier, err = notifiers.NewEndpointNotifier(log, endpoint)
+		notifier, err := notifiers.NewEndpointNotifier(log, endpoint)
 		if err != nil {
 			log.Error(err, "failed to instantiate endpoint notifier")
 			return
 		}
-	} else if len(cronjob) > 0 {
-		var err error
-		controller.notifier, err = notifiers.NewCronJobNotifier(clientset, cronjob)
+		controller.notifiers = append(controller.notifiers, notifier)
+	}
+
+	if len(cronjob) > 0 {
+		notifier, err := notifiers.NewCronJobNotifier(log, clientset, cronjob)
 		if err != nil {
 			log.Error(err, "failed to instantiate cronjob notifier")
 			return
 		}
-	} else {
-		controller.notifier = notifiers.LogNotifier{}
+		controller.notifiers = append(controller.notifiers, notifier)
 	}
 
 	// Start the controller
