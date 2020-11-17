@@ -269,7 +269,12 @@ func main() {
 			return
 		}
 	} else if len(cronjob) > 0 {
-		controller.notifier = notifiers.NewCronJobNotifier(clientset, cronjob)
+		var err error
+		controller.notifier, err = notifiers.NewCronJobNotifier(clientset, cronjob)
+		if err != nil {
+			log.Error(err, "failed to instantiate cronjob notifier")
+			return
+		}
 	} else {
 		controller.notifier = notifiers.LogNotifier{}
 	}

@@ -2,6 +2,7 @@ package notifiers
 
 import (
 	"context"
+	"errors"
 	"github.com/go-logr/logr"
 	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/api/batch/v1beta1"
@@ -16,16 +17,11 @@ type CronJobNotifier struct {
 	clientset   *kubernetes.Clientset
 	namespace   string
 	cronjobName string
+	cronjob		*v1beta1.CronJob
 }
 
 func (d CronJobNotifier) Notify(log logr.Logger, notification LabelUpdateNotification) error {
-	cj, err := d.findCronJob(d.cronjobName)
-	if err != nil {
-		log.Error(err, "failed to find matching cronjob")
-		return err
-	}
-
-	return d.scheduleCronJob(log, d.cronjobName, cj)
+	return d.scheduleCronJob(log, d.cronjobName, d.cronjob)
 }
 
 func (d CronJobNotifier) findCronJob(name string) (*v1beta1.CronJob, error) {
@@ -54,10 +50,19 @@ func (d CronJobNotifier) scheduleCronJob(log logr.Logger, name string, cronjob *
 	return nil
 }
 
-func NewCronJobNotifier(clientset *kubernetes.Clientset, cronjobName string) CronJobNotifier {
-	return CronJobNotifier{
+func NewCronJobNotifier(clientset *kubernetes.Clientset, cronjobName string) (CronJobNotifier, error) {
+	var err error
+
+	notifier := CronJobNotifier{
 		clientset:   clientset,
 		cronjobName: cronjobName,
 		namespace:   apiv1.NamespaceAll,
 	}
+
+	notifier.cronjob, err = notifier.findCronJob(cronjobName)
+	if err != nil {
+		return CronJobNotifier{}, errors.New("failed to find matching cronjob")
+	}
+
+	return notifier, nil
 }
