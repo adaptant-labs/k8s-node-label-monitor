@@ -17,7 +17,7 @@ type CronJobNotifier struct {
 	clientset   *kubernetes.Clientset
 	namespace   string
 	cronjobName string
-	cronjob		*v1beta1.CronJob
+	cronjob     *v1beta1.CronJob
 }
 
 func (d CronJobNotifier) Notify(log logr.Logger, notification LabelUpdateNotification) error {
@@ -50,8 +50,10 @@ func (d CronJobNotifier) scheduleCronJob(log logr.Logger, name string, cronjob *
 	return nil
 }
 
-func NewCronJobNotifier(clientset *kubernetes.Clientset, cronjobName string) (CronJobNotifier, error) {
+func NewCronJobNotifier(log logr.Logger, clientset *kubernetes.Clientset, cronjobName string) (CronJobNotifier, error) {
 	var err error
+
+	log.Info("Enabling CronJob notifier", "cronjob", cronjobName)
 
 	notifier := CronJobNotifier{
 		clientset:   clientset,
