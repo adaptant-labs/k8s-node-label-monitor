@@ -1,11 +1,11 @@
-# Kubernetes Node Label Monitor
+# Kubernetes Node Label/Annotation Monitor
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/adaptant/k8s-node-label-monitor.svg)](https://hub.docker.com/repository/docker/adaptant/k8s-node-label-monitor)
 
-This tool provides a custom Kubernetes controller for monitoring and notifying changes in the label states of Kubernetes
-nodes (labels added, deleted, or updated), and can be run either node-local or cluster-wide. Notifications can be
-dispatched to a number of different targets, and can be easily extended or customized through a simple notification
-interface.
+This tool provides a custom Kubernetes controller for monitoring and notifying changes in the label and annotation
+states of Kubernetes nodes (labels/annotations added, deleted, or updated), and can be run either node-local or
+cluster-wide. Notifications can be dispatched to a number of different targets, and can be easily extended or
+customized througha simple notification interface.
 
 ## Installation
 
@@ -24,7 +24,7 @@ General usage is as follows:
 
 ```
 $ k8s-node-label-monitor --help
-Node Label Monitor for Kubernetes
+Node Update Monitor for Kubernetes
 Usage: k8s-node-label-monitor [flags]
 
   -cronjob string
@@ -82,6 +82,67 @@ are supported:
 | Logger   | Log-based notification, piggybacking on the default logger instance |
 | REST API Endpoint | POSTs the JSON-encoded payload to a defined REST API endpoint  |
 | Kubernetes CronJob | Manually trigger a Kubernetes CronJob (such as [descheduler]) |
+
+## Payload Example
+
+```json
+{
+  "node": "jetson-nano",
+  "labelsAdded": {
+    "beta.devicetree.org/nvidia-jetson-nano": "1",
+    "beta.devicetree.org/nvidia-tegra210": "1",
+    "beta.kubernetes.io/arch": "arm64",
+    "beta.kubernetes.io/instance-type": "k3s",
+    "beta.kubernetes.io/os": "linux",
+    "feature.node.kubernetes.io/cpu-cpuid.AES": "true",
+    "feature.node.kubernetes.io/cpu-cpuid.ASIMD": "true",
+    "feature.node.kubernetes.io/cpu-cpuid.CRC32": "true",
+    "feature.node.kubernetes.io/cpu-cpuid.EVTSTRM": "true",
+    "feature.node.kubernetes.io/cpu-cpuid.FP": "true",
+    "feature.node.kubernetes.io/cpu-cpuid.PMULL": "true",
+    "feature.node.kubernetes.io/cpu-cpuid.SHA1": "true",
+    "feature.node.kubernetes.io/cpu-cpuid.SHA2": "true",
+    "feature.node.kubernetes.io/kernel-config.NO_HZ": "true",
+    "feature.node.kubernetes.io/kernel-config.NO_HZ_IDLE": "true",
+    "feature.node.kubernetes.io/kernel-config.PREEMPT": "true",
+    "feature.node.kubernetes.io/kernel-version.full": "4.9.140-tegra",
+    "feature.node.kubernetes.io/kernel-version.major": "4",
+    "feature.node.kubernetes.io/kernel-version.minor": "9",
+    "feature.node.kubernetes.io/kernel-version.revision": "140",
+    "feature.node.kubernetes.io/storage-nonrotationaldisk": "true",
+    "feature.node.kubernetes.io/system-os_release.ID": "ubuntu",
+    "feature.node.kubernetes.io/system-os_release.VERSION_ID": "18.04",
+    "feature.node.kubernetes.io/system-os_release.VERSION_ID.major": "18",
+    "feature.node.kubernetes.io/system-os_release.VERSION_ID.minor": "04",
+    "k3s.io/hostname": "jetson-nano",
+    "k3s.io/internal-ip": "...",
+    "kubernetes.io/arch": "arm64",
+    "kubernetes.io/hostname": "jetson-nano",
+    "kubernetes.io/os": "linux",
+    "node.kubernetes.io/instance-type": "k3s"
+  },
+  "labelsDeleted": [],
+  "labelsUpdated": {},
+  "annotationsAdded": {
+    "flannel.alpha.coreos.com/backend-data": "{\"VtepMAC\":\"42:b2:cc:71:52:e4\"}",
+    "flannel.alpha.coreos.com/backend-type": "vxlan",
+    "flannel.alpha.coreos.com/kube-subnet-manager": "true",
+    "flannel.alpha.coreos.com/public-ip": "...",
+    "k3s.io/node-args": "[\"agent\"]",
+    "k3s.io/node-config-hash": "...",
+    "k3s.io/node-env": "{\"K3S_DATA_DIR\":\"/var/lib/rancher/k3s/data/...\",\"K3S_TOKEN\":\"********\",\"K3S_URL\":\"https://<host>:6443\"}",
+    "nfd.node.kubernetes.io/extended-resources": "",
+    "nfd.node.kubernetes.io/feature-labels": "beta.devicetree.org/nvidia-jetson-nano,beta.devicetree.org/nvidia-tegra210,cpu-cpuid.AES,cpu-cpuid.ASIMD,cpu-cpuid.CRC32,cpu-cpuid.EVTSTRM,cpu-cpuid.FP,cpu-cpuid.PMULL,cpu-cpuid.SHA1,cpu-cpuid.SHA2,kernel-config.NO_HZ,kernel-config.NO_HZ_IDLE,kernel-config.PREEMPT,kernel-version.full,kernel-version.major,kernel-version.minor,kernel-version.revision,storage-nonrotationaldisk,system-os_release.ID,system-os_release.VERSION_ID,system-os_release.VERSION_ID.major,system-os_release.VERSION_ID.minor",
+    "nfd.node.kubernetes.io/master.version": "",
+    "nfd.node.kubernetes.io/worker.version": "",
+    "node.alpha.kubernetes.io/ttl": "0",
+    "volumes.kubernetes.io/controller-managed-attach-detach": "true"
+  },
+  "annotationsDeleted": [],
+  "annotationsUpdated": {}
+}
+
+```
 
 ## Features and bugs
 

@@ -20,23 +20,24 @@ import (
 )
 
 var (
-	monitorName = "k8s-node-label-monitor"
-	nodeLocal   = false
-	logging     = true
-	cronjob     = ""
-	log         = logf.Log.WithName(monitorName)
-	nodeLabels  = map[string]map[string]string{}
+	monitorName     = "k8s-node-label-monitor"
+	nodeLocal       = false
+	logging         = true
+	cronjob         = ""
+	log             = logf.Log.WithName(monitorName)
+	nodeLabels      = map[string]map[string]string{}
+	nodeAnnotations = map[string]map[string]string{}
 )
 
 type Controller struct {
 	indexer   cache.Indexer
 	queue     workqueue.RateLimitingInterface
 	informer  cache.Controller
-	notifiers []notifiers.LabelNotifier
+	notifiers []notifiers.NodeUpdateNotifier
 }
 
-// Compare two label maps and determine which key/value pairs have been added, deleted, or updated.
-func compareLabelMaps(oldMap map[string]string, newMap map[string]string) (added map[string]string, deleted []string, updated map[string]string) {
+// Compare two maps and determine which key/value pairs have been added, deleted, or updated.
+func compareMaps(oldMap map[string]string, newMap map[string]string) (added map[string]string, deleted []string, updated map[string]string) {
 	added = map[string]string{}
 	deleted = []string{}
 	updated = map[string]string{}
@@ -70,11 +71,11 @@ func NewController(queue workqueue.RateLimitingInterface, indexer cache.Indexer,
 		indexer:   indexer,
 		informer:  informer,
 		queue:     queue,
-		notifiers: make([]notifiers.LabelNotifier, 0),
+		notifiers: make([]notifiers.NodeUpdateNotifier, 0),
 	}
 }
 
-func (c Controller) notify(log logr.Logger, notification notifiers.LabelUpdateNotification) error {
+func (c Controller) notify(log logr.Logger, notification notifiers.NodeUpdateNotification) error {
 	for _, notifier := range c.notifiers {
 		err := notifier.Notify(log, notification)
 		if err != nil {
@@ -85,8 +86,8 @@ func (c Controller) notify(log logr.Logger, notification notifiers.LabelUpdateNo
 	return nil
 }
 
-// Calculate label changes across each node update
-func (c *Controller) labelUpdateHandler(key string) error {
+// Calculate label and annotation changes across each node update
+func (c *Controller) nodeUpdateHandler(key string) error {
 	obj, exists, err := c.indexer.GetByKey(key)
 	if err != nil {
 		log.Error(err, "Failed to get key")
@@ -96,19 +97,27 @@ func (c *Controller) labelUpdateHandler(key string) error {
 	if exists {
 		node := obj.(*v1.Node)
 		nodeName := node.GetName()
+		notification := notifiers.NodeUpdateNotification{
+			Node: node.GetName(),
+		}
 
 		// Compare the cached label state to the incoming one
-		added, deleted, updated := compareLabelMaps(nodeLabels[nodeName], node.Labels)
+		ladded, ldeleted, lupdated := compareMaps(nodeLabels[nodeName], node.Labels)
 
-		// Log any label updates
-		if len(added) > 0 || len(deleted) > 0 || len(updated) > 0 {
-			notification := notifiers.LabelUpdateNotification{
-				Node:    node.GetName(),
-				Added:   added,
-				Updated: updated,
-				Deleted: deleted,
-			}
+		notification.LabelsAdded = ladded
+		notification.LabelsDeleted = ldeleted
+		notification.LabelsUpdated = lupdated
 
+		// Compare the cached annotation state to the incoming one
+		aadded, adeleted, aupdated := compareMaps(nodeAnnotations[nodeName], node.Annotations)
+
+		notification.AnnotationsAdded = aadded
+		notification.AnnotationsDeleted = adeleted
+		notification.AnnotationsUpdated = aupdated
+
+		// Log any label/annotation updates
+		if len(aadded) > 0 || len(adeleted) > 0 || len(aupdated) > 0 ||
+			len(ladded) > 0 || len(ldeleted) > 0 || len(lupdated) > 0 {
 			err := c.notify(log, notification)
 			if err != nil {
 				log.Error(err, "Failed to dispatch notification")
@@ -130,6 +139,21 @@ func (c *Controller) labelUpdateHandler(key string) error {
 		for k, v := range node.Labels {
 			nodeLabels[nodeName][k] = v
 		}
+
+		// Remove any previously cached annotations
+		if nodeAnnotations[nodeName] != nil {
+			for k := range nodeAnnotations[nodeName] {
+				delete(nodeAnnotations[nodeName], k)
+			}
+		} else {
+			// Ensure the annotation cache is allocated for this node
+			nodeAnnotations[nodeName] = make(map[string]string)
+		}
+
+		// Cache the updated annotation state
+		for k, v := range node.Annotations {
+			nodeAnnotations[nodeName][k] = v
+		}
 	}
 
 	return nil
@@ -143,7 +167,7 @@ func (c *Controller) processNextWorkItem() bool {
 
 	defer c.queue.Done(key)
 
-	err := c.labelUpdateHandler(key.(string))
+	err := c.nodeUpdateHandler(key.(string))
 	if err == nil {
 		c.queue.Forget(key)
 		return true
@@ -217,7 +241,7 @@ func main() {
 	flag.StringVar(&endpoint, "endpoint", "", "Notification endpoint to POST updates to")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Node Label Monitor for Kubernetes\n")
+		fmt.Fprintf(os.Stderr, "Node Update Monitor for Kubernetes\n")
 		fmt.Fprintf(os.Stderr, "Usage: %s [flags]\n\n", monitorName)
 		flag.PrintDefaults()
 	}
@@ -267,6 +291,7 @@ func main() {
 			key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 			if err == nil {
 				// Remove node
+				delete(nodeAnnotations, key)
 				delete(nodeLabels, key)
 				enqueueNodeUpdate(key, queue)
 			}

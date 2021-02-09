@@ -41,7 +41,7 @@ func NewEndpointNotifier(log logr.Logger, endpoint string) (*EndpointNotifier, e
 	}, nil
 }
 
-func (e EndpointNotifier) Notify(log logr.Logger, notification LabelUpdateNotification) error {
+func (e EndpointNotifier) Notify(log logr.Logger, notification NodeUpdateNotification) error {
 	payload, err := json.Marshal(notification)
 	if err != nil {
 		log.Error(err, "failed to marshal JSON payload")

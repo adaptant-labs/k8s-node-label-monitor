@@ -20,7 +20,7 @@ type CronJobNotifier struct {
 	cronjob     *v1beta1.CronJob
 }
 
-func (d CronJobNotifier) Notify(log logr.Logger, notification LabelUpdateNotification) error {
+func (d CronJobNotifier) Notify(log logr.Logger, notification NodeUpdateNotification) error {
 	return d.scheduleCronJob(log, d.cronjobName, d.cronjob)
 }
 

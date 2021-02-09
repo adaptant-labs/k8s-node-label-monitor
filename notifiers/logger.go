@@ -8,7 +8,7 @@ import (
 // Default log-based notifier
 type LogNotifier struct{}
 
-func (l LogNotifier) Notify(log logr.Logger, notification LabelUpdateNotification) error {
+func (l LogNotifier) Notify(log logr.Logger, notification NodeUpdateNotification) error {
 	msg, err := json.Marshal(notification)
 	if err != nil {
 		log.Error(err, "failed to marshal JSON")

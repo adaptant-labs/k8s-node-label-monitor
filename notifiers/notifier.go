@@ -2,13 +2,16 @@ package notifiers
 
 import "github.com/go-logr/logr"
 
-type LabelUpdateNotification struct {
-	Node    string            `json:"node"`
-	Added   map[string]string `json:"labelsAdded"`
-	Deleted []string          `json:"labelsDeleted"`
-	Updated map[string]string `json:"labelsUpdated"`
+type NodeUpdateNotification struct {
+	Node               string            `json:"node"`
+	LabelsAdded        map[string]string `json:"labelsAdded"`
+	LabelsDeleted      []string          `json:"labelsDeleted"`
+	LabelsUpdated      map[string]string `json:"labelsUpdated"`
+	AnnotationsAdded   map[string]string `json:"annotationsAdded"`
+	AnnotationsDeleted []string          `json:"annotationsDeleted"`
+	AnnotationsUpdated map[string]string `json:"annotationsUpdated"`
 }
 
-type LabelNotifier interface {
-	Notify(log logr.Logger, notification LabelUpdateNotification) error
+type NodeUpdateNotifier interface {
+	Notify(log logr.Logger, notification NodeUpdateNotification) error
 }
